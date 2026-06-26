@@ -1,0 +1,84 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Production builds
+build/
+dist/
+**/build/
+**/dist/
+
+# Environment & secrets (never commit)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+**/.env
+!**/.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+venv*/
+.venv/
+env/
+ENV/
+*.egg-info/
+.eggs/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+pnpm-debug.log*
+
+# Runtime / uploads (ephemeral user content)
+user/backend/uploads/*
+!user/backend/uploads/.gitkeep
+
+# Testing & coverage
+coverage/
+.nyc_output/
+*.lcov
+
+# IDE & editor
+.idea/
+.vscode/
+.cursor/
+.qodo/
+.sixth/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# Optional caches
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+*.tsbuildinfo
+
+# Misc
+*.pem
+*.key
+*.p12
+*.pfx
