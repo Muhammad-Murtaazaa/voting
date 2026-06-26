@@ -81,7 +81,34 @@ const sendEmailWithBrevo = async (options) => {
       },
     }
   );
-  console.log(`✅ Email sent via Brevo to ${options.email}`);
+  console.log(`✅ Email sent via Brevo API to ${options.email}`);
+};
+
+/** Brevo SMTP — local dev only (Render blocks port 587). */
+const sendEmailWithBrevoSmtp = async (options) => {
+  if (isRender) {
+    throw new Error('Brevo SMTP is blocked on Render. Use BREVO_API_KEY (API tab) instead.');
+  }
+
+  const transporter = nodemailer.createTransport({
+    host: process.env.BREVO_SMTP_HOST || 'smtp-relay.brevo.com',
+    port: Number(process.env.BREVO_SMTP_PORT || 587),
+    secure: false,
+    auth: {
+      user: process.env.BREVO_SMTP_USER,
+      pass: process.env.BREVO_SMTP_KEY,
+    },
+  });
+
+  const fromEmail = process.env.BREVO_FROM_EMAIL || process.env.EMAIL_USER;
+  const info = await transporter.sendMail({
+    from: `"${process.env.FROM_NAME || 'iVotePK'}" <${fromEmail}>`,
+    to: options.email,
+    subject: options.subject,
+    html: options.message,
+  });
+  console.log(`✅ Email sent via Brevo SMTP to ${options.email}`);
+  return info;
 };
 
 const displayOTPInConsole = (options) => {
@@ -108,6 +135,15 @@ const sendEmail = async (options) => {
     if (!isPlaceholder(process.env.BREVO_API_KEY)) {
       await sendEmailWithBrevo(options);
       return { success: true, method: 'brevo' };
+    }
+
+    if (
+      !isRender &&
+      !isPlaceholder(process.env.BREVO_SMTP_USER) &&
+      !isPlaceholder(process.env.BREVO_SMTP_KEY)
+    ) {
+      const info = await sendEmailWithBrevoSmtp(options);
+      return { success: true, method: 'brevo_smtp', info };
     }
 
     if (
