@@ -1,18 +1,15 @@
-# Netlify configuration for iVotePK React frontend (Create React App)
-
+# Repo root config — frontend lives in user/
 [build]
+  base = "user"
   command = "npm install --legacy-peer-deps && npm run build"
   publish = "build"
 
 [build.environment]
   NODE_VERSION = "20"
-  # face-api.js models + CRA build can exceed default memory on Netlify
   NODE_OPTIONS = "--max-old-space-size=4096"
   GENERATE_SOURCEMAP = "false"
-  # Netlify sets CI=true by default; CRA treats warnings as errors when CI=true
   CI = "false"
 
-# SPA fallback — React Router client-side routes (e.g. /login, /admin)
 [[redirects]]
   from = "/*"
   to = "/index.html"
