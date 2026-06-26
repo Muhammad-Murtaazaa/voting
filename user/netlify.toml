@@ -11,6 +11,7 @@
   GENERATE_SOURCEMAP = "false"
   # Netlify sets CI=true by default; CRA treats warnings as errors when CI=true
   CI = "false"
+  REACT_APP_API_URL = "https://voting-4sb6.onrender.com"
 
 # SPA fallback — React Router client-side routes (e.g. /login, /admin)
 [[redirects]]

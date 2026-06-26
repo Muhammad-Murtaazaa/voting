@@ -5,8 +5,10 @@ const {
   verifyAuthenticationResponse
 } = require('@simplewebauthn/server');
 
-const expectedOrigin = process.env.CLIENT_URL || 'http://localhost:3000';
-const expectedRPID = process.env.RP_ID || 'localhost';
+const { getClientUrl, getRpId } = require('../config/urls');
+
+const expectedOrigin = getClientUrl();
+const expectedRPID = getRpId();
 
 const rpName = 'iVotePK';
 

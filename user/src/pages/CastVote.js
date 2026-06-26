@@ -31,7 +31,7 @@ const CastVote = () => {
           return;
         }
 
-        const response = await fetch('http://localhost:5000/api/auth/me', {
+        const response = await fetch(`${API_BASE}/api/auth/me`, {
           headers: {
             Authorization: `Bearer ${token}`
           }
@@ -154,7 +154,7 @@ const CastVote = () => {
         return;
       }
 
-      const verifyResponse = await fetch('http://localhost:5000/api/vote/verify-security', {
+      const verifyResponse = await fetch(`${API_BASE}/api/vote/verify-security`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

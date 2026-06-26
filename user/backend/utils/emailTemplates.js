@@ -3,6 +3,10 @@
  * All templates use branded styling and comply with email client standards
  */
 
+const { getClientUrl } = require('../config/urls');
+
+const clientUrl = () => getClientUrl();
+
 const getEmailHeader = () => `
 <!DOCTYPE html>
 <html lang="en">
@@ -51,8 +55,8 @@ const getEmailFooter = () => `
             <p><strong>iVotePK Security Center</strong></p>
             <p>This is an automated security alert. Please do not reply to this email.</p>
             <p>© 2026 iVotePK. All rights reserved.</p>
-            <p><a href="http://localhost:3000" style="color: #1b4d3e; text-decoration: none;">Visit Dashboard</a> | 
-               <a href="http://localhost:3000/security" style="color: #1b4d3e; text-decoration: none;">Security Settings</a></p>
+            <p><a href="${clientUrl()}" style="color: #1b4d3e; text-decoration: none;">Visit Dashboard</a> | 
+               <a href="${clientUrl()}/security" style="color: #1b4d3e; text-decoration: none;">Security Settings</a></p>
         </div>
     </div>
 </body>
@@ -112,7 +116,7 @@ ${getEmailHeader()}
                 <strong>⚡ Recommendation:</strong> Review this account immediately. Cross-reference the IP address with other suspicious activities.
             </p>
 
-            <a href="http://localhost:3000/fraud-monitor" class="action-button">🔍 View in Fraud Monitor</a>
+            <a href="${clientUrl()}/fraud-monitor" class="action-button">🔍 View in Fraud Monitor</a>
         </div>
 
 ${getEmailFooter()}
@@ -178,7 +182,7 @@ ${getEmailHeader()}
                 <strong>🔒 Notice:</strong> The duplicate vote has been <strong>permanently blocked</strong>. Only the first legitimate vote is recorded. The account has been flagged for investigation.
             </p>
 
-            <a href="http://localhost:3000/fraud-monitor" class="action-button">🔍 View in Fraud Monitor</a>
+            <a href="${clientUrl()}/fraud-monitor" class="action-button">🔍 View in Fraud Monitor</a>
         </div>
 
 ${getEmailFooter()}
@@ -236,7 +240,7 @@ ${getEmailHeader()}
                 If this wasn't you, <strong>change your password immediately</strong> and contact support.
             </p>
 
-            <a href="http://localhost:3000/account-security" class="action-button">🔒 Secure Your Account</a>
+            <a href="${clientUrl()}/account-security" class="action-button">🔒 Secure Your Account</a>
         </div>
 
 ${getEmailFooter()}
@@ -283,7 +287,7 @@ ${getEmailHeader()}
                 Do not share this code with anyone. iVotePK will never ask for your code via email or phone.
             </p>
 
-            <a href="http://localhost:3000/register/verify" class="action-button">✅ Verify Email</a>
+            <a href="${clientUrl()}/register/verify" class="action-button">✅ Verify Email</a>
         </div>
 
 ${getEmailFooter()}
@@ -296,7 +300,7 @@ ${getEmailFooter()}
  */
 exports.passwordResetEmail = (data) => {
   const { userEmail, resetToken, expiryMinutes = 30 } = data;
-  const resetLink = `http://localhost:3000/reset-password?token=${resetToken}`;
+  const resetLink = `${clientUrl()}/reset-password?token=${resetToken}`;
 
   return {
     subject: '🔑 Reset Your iVotePK Password',
@@ -382,7 +386,7 @@ ${getEmailHeader()}
                 <li>Enable two-factor authentication for extra security</li>
             </ol>
 
-            <a href="http://localhost:3000/dashboard" class="action-button">📊 Go to Dashboard</a>
+            <a href="${clientUrl()}/dashboard" class="action-button">📊 Go to Dashboard</a>
         </div>
 
 ${getEmailFooter()}
@@ -437,7 +441,7 @@ ${getEmailHeader()}
                 <li>Or contact support to unlock immediately</li>
             </ol>
 
-            <a href="http://localhost:3000/support" class="action-button">📞 Contact Support</a>
+            <a href="${clientUrl()}/support" class="action-button">📞 Contact Support</a>
         </div>
 
 ${getEmailFooter()}

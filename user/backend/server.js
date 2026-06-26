@@ -11,6 +11,8 @@ const errorHandler = require('./middleware/error');
 const { generalLimiter } = require('./middleware/rateLimiter');
 const setupSocketIO = require('./utils/socketHandler');
 
+const { getAllowedOrigins } = require('./config/urls');
+
 dotenv.config();
 
 connectDB();
@@ -20,10 +22,7 @@ const server = http.createServer(app);
 
 const io = socketIo(server, {
   cors: {
-    origin: [
-      process.env.CLIENT_URL || 'http://localhost:3000',
-      'http://127.0.0.1:3000'
-    ],
+    origin: getAllowedOrigins(),
     methods: ['GET', 'POST'],
     credentials: true
   }
@@ -40,11 +39,7 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 app.use(cors({
-    // Allow both localhost and 127.0.0.1 during development to prevent CORS fetch failures.
-    origin: [
-      process.env.CLIENT_URL || 'http://localhost:3000',
-      'http://127.0.0.1:3000'
-    ],
+  origin: getAllowedOrigins(),
   credentials: true
 }));
 

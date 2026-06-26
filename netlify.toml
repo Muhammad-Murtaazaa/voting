@@ -9,6 +9,7 @@
   NODE_OPTIONS = "--max-old-space-size=4096"
   GENERATE_SOURCEMAP = "false"
   CI = "false"
+  REACT_APP_API_URL = "https://voting-4sb6.onrender.com"
 
 [[redirects]]
   from = "/*"
