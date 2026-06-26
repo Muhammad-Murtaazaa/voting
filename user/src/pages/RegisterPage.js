@@ -42,11 +42,17 @@ const RegisterPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [detectedDistrict, setDetectedDistrict] = useState(null);
   const [isDetectingDistrict, setIsDetectingDistrict] = useState(false);
+  const [homeDistrictKey, setHomeDistrictKey] = useState('');
+  const [domesticDistrictGroups, setDomesticDistrictGroups] = useState([]);
+  const [isLoadingDomesticDistricts, setIsLoadingDomesticDistricts] = useState(false);
+
+  const isOverseasCnic = Boolean(detectedDistrict?.isOverseas || detectedDistrict?.detectionLevel === 'overseas');
 
   useEffect(() => {
     const cnicClean = formData.cnic.replace(/\D/g, '');
     if (cnicClean.length < 5) {
       setDetectedDistrict(null);
+      setHomeDistrictKey('');
       return;
     }
 
@@ -63,7 +69,10 @@ const RegisterPage = () => {
         }
 
         setDetectedDistrict(data.district);
-        setErrors((prev) => ({ ...prev, cnic: '' }));
+        if (!data.district?.isOverseas && data.district?.detectionLevel !== 'overseas') {
+          setHomeDistrictKey('');
+        }
+        setErrors((prev) => ({ ...prev, cnic: '', homeDistrict: '' }));
       } catch (error) {
         if (error.name === 'AbortError') return;
         setDetectedDistrict(null);
@@ -78,6 +87,54 @@ const RegisterPage = () => {
     lookupDistrict();
     return () => controller.abort();
   }, [formData.cnic]);
+
+  useEffect(() => {
+    if (!isOverseasCnic) return undefined;
+
+    const controller = new AbortController();
+    const loadDomesticDistricts = async () => {
+      setIsLoadingDomesticDistricts(true);
+      try {
+        const response = await fetch(`${API_BASE}/api/public/districts/domestic`, {
+          signal: controller.signal
+        });
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+          throw new Error(data.message || 'Could not load home districts');
+        }
+        setDomesticDistrictGroups(data.groups || []);
+      } catch (error) {
+        if (error.name === 'AbortError') return;
+        setDomesticDistrictGroups([]);
+        setErrors((prev) => ({
+          ...prev,
+          homeDistrict: error.message || 'Could not load home districts. Please refresh and try again.'
+        }));
+      } finally {
+        setIsLoadingDomesticDistricts(false);
+      }
+    };
+
+    loadDomesticDistricts();
+    return () => controller.abort();
+  }, [isOverseasCnic]);
+
+  const parseHomeDistrictKey = (key) => {
+    if (!key) return null;
+    try {
+      return JSON.parse(key);
+    } catch {
+      return null;
+    }
+  };
+
+  const handleHomeDistrictChange = (event) => {
+    const value = event.target.value;
+    setHomeDistrictKey(value);
+    if (errors.homeDistrict) {
+      setErrors((prev) => ({ ...prev, homeDistrict: '' }));
+    }
+  };
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -112,6 +169,10 @@ const RegisterPage = () => {
 
     if (!detectedDistrict) {
       nextErrors.cnic = nextErrors.cnic || 'District could not be detected from the first 5 CNIC digits';
+    }
+
+    if (isOverseasCnic && !homeDistrictKey) {
+      nextErrors.homeDistrict = 'Please select your home district in Pakistan';
     }
 
     // halqa selection is not required at registration; admin will assign later.
@@ -161,20 +222,27 @@ const RegisterPage = () => {
 
     try {
       const cnicClean = formData.cnic.replace(/-/g, '');
+      const homeDistrict = parseHomeDistrictKey(homeDistrictKey);
+      const registerPayload = {
+        name: formData.name.trim(),
+        cnic: cnicClean,
+        email: formData.email,
+        phone: formData.phone,
+        password: formData.password,
+      };
+
+      if (isOverseasCnic && homeDistrict) {
+        registerPayload.homeDistrict = homeDistrict.name;
+        registerPayload.homeDistrictProvince = homeDistrict.province;
+        registerPayload.homeDistrictCode = homeDistrict.code || '';
+      }
 
       const response = await fetch(`${API_BASE}/api/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          name: formData.name.trim(),
-          cnic: cnicClean,
-          email: formData.email,
-          phone: formData.phone,
-          password: formData.password,
-          // halqaId intentionally omitted; admin assigns halqa after approval
-        })
+        body: JSON.stringify(registerPayload)
       });
 
       const data = await response.json();
@@ -189,8 +257,11 @@ const RegisterPage = () => {
       localStorage.setItem('userRegistrationData', JSON.stringify({
         ...formData,
         cnic: cnicClean,
-        district: detectedDistrict?.name,
-        districtCode: detectedDistrict?.code,
+        district: isOverseasCnic && homeDistrict ? homeDistrict.name : detectedDistrict?.name,
+        districtCode: isOverseasCnic && homeDistrict ? homeDistrict.code : detectedDistrict?.code,
+        districtProvince: isOverseasCnic && homeDistrict ? homeDistrict.province : detectedDistrict?.province,
+        isOverseasVoter: isOverseasCnic,
+        overseasRegion: isOverseasCnic ? detectedDistrict?.name : null,
         userId: data.userId
       }));
 
@@ -335,7 +406,9 @@ const RegisterPage = () => {
             </div>
 
             <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', marginBottom: 8, color: '#334155', fontWeight: 700 }}>Detected District</label>
+              <label style={{ display: 'block', marginBottom: 8, color: '#334155', fontWeight: 700 }}>
+                {isOverseasCnic ? 'NICOP Region (from CNIC)' : 'Detected District'}
+              </label>
               <div style={{ padding: '13px 14px', borderRadius: 14, border: '1px solid #cbd5e1', background: '#f8fafc', color: detectedDistrict ? '#0f172a' : '#64748b' }}>
                 {detectedDistrict
                   ? `${detectedDistrict.name} (${detectedDistrict.province})`
@@ -344,6 +417,49 @@ const RegisterPage = () => {
               {detectedDistrict && (
                 <div style={{ marginTop: 6, color: '#0f766e', fontSize: 13, fontWeight: 600 }}>
                   {getDetectionLabel(detectedDistrict)}
+                </div>
+              )}
+              {isOverseasCnic && (
+                <div style={{ marginTop: 12 }}>
+                  <label style={{ display: 'block', marginBottom: 8, color: '#334155', fontWeight: 700 }}>
+                    Home District in Pakistan
+                  </label>
+                  <select
+                    name="homeDistrict"
+                    value={homeDistrictKey}
+                    onChange={handleHomeDistrictChange}
+                    style={{
+                      ...inputStyle(errors.homeDistrict),
+                      cursor: isLoadingDomesticDistricts ? 'wait' : 'pointer'
+                    }}
+                    disabled={isLoadingDomesticDistricts || domesticDistrictGroups.length === 0}
+                  >
+                    <option value="">
+                      {isLoadingDomesticDistricts
+                        ? 'Loading districts...'
+                        : 'Select your home district in Pakistan'}
+                    </option>
+                    {domesticDistrictGroups.map((group) => (
+                      <optgroup key={group.province} label={group.province}>
+                        {group.districts.map((district) => {
+                          const optionKey = JSON.stringify({
+                            name: district.name,
+                            province: district.province,
+                            code: district.code || ''
+                          });
+                          return (
+                            <option key={`${group.province}-${district.name}`} value={optionKey}>
+                              {district.name}
+                            </option>
+                          );
+                        })}
+                      </optgroup>
+                    ))}
+                  </select>
+                  {errors.homeDistrict && <div style={{ marginTop: 6, color: '#b91c1c' }}>{errors.homeDistrict}</div>}
+                  <div style={{ marginTop: 6, color: '#475569', fontSize: 13 }}>
+                    Overseas NICOP holders must select the Pakistani district they belong to for voter records.
+                  </div>
                 </div>
               )}
               <div style={{ marginTop: 6, color: '#475569', fontSize: 13 }}>

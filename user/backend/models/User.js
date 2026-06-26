@@ -148,6 +148,14 @@ const userSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  isOverseasVoter: {
+    type: Boolean,
+    default: false,
+  },
+  overseasRegion: {
+    type: String,
+    trim: true,
+  },
   halqaId: {
     type: String,
     trim: true,

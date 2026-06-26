@@ -174,11 +174,100 @@ const getAllDistrictOptions = () => {
 
 /** List all provinces + overseas for public API */
 const getAllProvinces = () => {
-  const { PROVINCES } = require('./cnicRegionData');
+  const { PROVINCES, OVERSEAS_PROVINCE } = require('./cnicRegionData');
   return [
     ...Object.entries(PROVINCES).map(([code, name]) => ({ code, name, type: 'province' })),
     { code: '90', name: OVERSEAS_PROVINCE, type: 'overseas' },
   ];
+};
+
+/** Pakistani districts for overseas NICOP home-district selection (excludes overseas) */
+const getDomesticDistrictOptions = () => {
+  const { OVERSEAS_PROVINCE } = require('./cnicRegionData');
+  return getAllDistrictOptions().filter(
+    (d) => d.province && d.province !== OVERSEAS_PROVINCE && d.province !== 'Overseas'
+  );
+};
+
+const getDomesticDistrictsGrouped = () => {
+  const options = getDomesticDistrictOptions();
+  const grouped = {};
+
+  options.forEach((district) => {
+    const province = district.province || 'Other';
+    if (!grouped[province]) grouped[province] = [];
+    grouped[province].push({
+      name: district.name,
+      province: district.province,
+      code: district.code || '',
+      division: district.division || null,
+    });
+  });
+
+  return Object.entries(grouped)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([province, districts]) => ({
+      province,
+      districts: districts.sort((a, b) => a.name.localeCompare(b.name)),
+    }));
+};
+
+const resolveRegistrationDistrict = (cnic, body = {}) => {
+  const detected = detectDistrictFromCnic(cnic);
+  if (!detected) {
+    return {
+      ok: false,
+      message: 'CNIC district could not be detected. Please enter a valid CNIC prefix supported by the halqa list.',
+    };
+  }
+
+  if (!detected.isOverseas) {
+    return {
+      ok: true,
+      detected,
+      district: {
+        code: detected.code,
+        name: detected.name,
+        province: detected.province,
+        isOverseasVoter: false,
+        overseasRegion: null,
+      },
+    };
+  }
+
+  const homeName = String(body.homeDistrict || body.homeDistrictName || '').trim();
+  const homeProvince = String(body.homeDistrictProvince || '').trim();
+  const homeCode = String(body.homeDistrictCode || '').trim();
+
+  if (!homeName || !homeProvince) {
+    return {
+      ok: false,
+      message: 'Overseas NICOP holders must select their home district in Pakistan.',
+    };
+  }
+
+  const domestic = getDomesticDistrictOptions().find(
+    (d) => d.name === homeName && d.province === homeProvince
+  );
+
+  if (!domestic) {
+    return {
+      ok: false,
+      message: 'Selected home district is not valid. Please choose from the dropdown list.',
+    };
+  }
+
+  return {
+    ok: true,
+    detected,
+    district: {
+      code: homeCode || domestic.code || detected.code,
+      name: domestic.name,
+      province: domestic.province,
+      isOverseasVoter: true,
+      overseasRegion: detected.name,
+    },
+  };
 };
 
 module.exports = {
@@ -192,4 +281,7 @@ module.exports = {
   buildDistrictResponse,
   getAllDistrictOptions,
   getAllProvinces,
+  getDomesticDistrictOptions,
+  getDomesticDistrictsGrouped,
+  resolveRegistrationDistrict,
 };

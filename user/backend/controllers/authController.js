@@ -32,7 +32,8 @@ const { manualLog } = require('../middleware/activityLogger');
 const {
   detectDistrictFromCnic,
   isValidHalqaForDistrict,
-  normalizeHalqaId
+  normalizeHalqaId,
+  resolveRegistrationDistrict,
 } = require('../utils/halqaData');
 
 const generateOTP = () => {
@@ -788,21 +789,24 @@ exports.register = async (req, res) => {
     const password = req.body.password;
     const name = normalizeIdentifierValue(req.body.name);
     const selectedHalqaId = normalizeHalqaId(req.body.halqaId || req.body.constituency);
-    const detectedDistrict = detectDistrictFromCnic(cnic);
+    const districtResult = resolveRegistrationDistrict(cnic, req.body);
 
-    if (!detectedDistrict) {
+    if (!districtResult.ok) {
       return res.status(400).json({
         success: false,
-        message: 'CNIC district could not be detected. Please enter a valid CNIC prefix supported by the halqa list.'
+        message: districtResult.message,
       });
     }
 
+    const registrationDistrict = districtResult.district;
+    const detectedDistrict = districtResult.detected;
+
     // During initial registration we do NOT require the user to select a halqa.
     // Admin will later approve the account and assign the correct halqa.
-    if (selectedHalqaId && !isValidHalqaForDistrict(detectedDistrict.code, selectedHalqaId)) {
+    if (selectedHalqaId && !isValidHalqaForDistrict(registrationDistrict.code, selectedHalqaId)) {
       return res.status(400).json({
         success: false,
-        message: `Selected halqa does not belong to ${detectedDistrict.name}. Please choose a halqa from your detected district.`
+        message: `Selected halqa does not belong to ${registrationDistrict.name}. Please choose a halqa from your detected district.`
       });
     }
 
@@ -911,8 +915,10 @@ exports.register = async (req, res) => {
       user.cnic = cnic;
       user.name = name;
       user.phone = phone;
-      user.districtCode = detectedDistrict.code;
-      user.district = detectedDistrict.name;
+      user.districtCode = registrationDistrict.code;
+      user.district = registrationDistrict.name;
+      user.isOverseasVoter = registrationDistrict.isOverseasVoter;
+      user.overseasRegion = registrationDistrict.overseasRegion || undefined;
       // Do not require halqa at registration; keep empty until admin approval.
       user.halqaId = selectedHalqaId || undefined;
       user.status = 'pending';
@@ -953,8 +959,10 @@ exports.register = async (req, res) => {
         email,
         phone,
         name,
-        districtCode: detectedDistrict.code,
-        district: detectedDistrict.name,
+        districtCode: registrationDistrict.code,
+        district: registrationDistrict.name,
+        isOverseasVoter: registrationDistrict.isOverseasVoter,
+        overseasRegion: registrationDistrict.overseasRegion || undefined,
         // halqa is assigned by admin during approval
         halqaId: selectedHalqaId || undefined,
         status: 'pending',
@@ -1038,7 +1046,9 @@ exports.register = async (req, res) => {
       await manualLog(user._id, 'registration', `New user registered: ${email}`, req, {
         email,
         cnic,
-        district: detectedDistrict.name,
+        district: registrationDistrict.name,
+        overseasRegion: registrationDistrict.overseasRegion,
+        isOverseasVoter: registrationDistrict.isOverseasVoter,
         halqaId: selectedHalqaId,
         status: 'success',
         emailMethod: emailResult.method

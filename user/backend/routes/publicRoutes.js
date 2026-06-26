@@ -10,6 +10,7 @@ const {
   getAllCandidates,
   getDistricts,
   getProvinces,
+  getDomesticDistricts,
   getHalqasByDistrict,
   detectCnicDistrict
 } = require('../controllers/electionController');
@@ -24,6 +25,7 @@ router.get('/elections/:id/results', getElectionResults);
 router.get('/elections/:electionId/candidates', optionalAuth, getCandidatesByElection);
 
 router.get('/districts', getDistricts);
+router.get('/districts/domestic', getDomesticDistricts);
 router.get('/provinces', getProvinces);
 router.get('/districts/:districtCode/halqas', getHalqasByDistrict);
 router.get('/cnic-district/:cnicPrefix', detectCnicDistrict);

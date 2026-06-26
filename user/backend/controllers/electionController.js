@@ -40,6 +40,14 @@ exports.getDistricts = async (req, res) => {
   });
 };
 
+exports.getDomesticDistricts = async (req, res) => {
+  const { getDomesticDistrictsGrouped } = require('../utils/halqaData');
+  res.status(200).json({
+    success: true,
+    groups: getDomesticDistrictsGrouped(),
+  });
+};
+
 exports.getProvinces = async (req, res) => {
   res.status(200).json({
     success: true,
