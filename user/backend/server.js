@@ -57,10 +57,35 @@ app.get('/', (req, res) => {
     message: 'iVotePK API - Intelligent Voting System',
     version: '1.0.0',
     endpoints: {
+      health: '/api/health',
       auth: '/api/auth',
+      register: 'POST /api/auth/register',
       vote: '/api/vote',
       elections: '/api/public',
       admin: '/api/admin'
+    }
+  });
+});
+
+app.get('/api/health', (req, res) => {
+  res.json({
+    success: true,
+    status: 'ok',
+    service: 'ivotepk-api',
+    timestamp: new Date().toISOString()
+  });
+});
+
+app.get('/api/auth', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Auth API — most routes require POST with JSON body',
+    routes: {
+      register: 'POST /api/auth/register',
+      login: 'POST /api/auth/login',
+      verifyOtp: 'POST /api/auth/verify-otp',
+      resendOtp: 'POST /api/auth/resend-otp',
+      me: 'GET /api/auth/me (Bearer token)'
     }
   });
 });
@@ -73,9 +98,14 @@ app.use('/api/admin', require('./routes/adminRoutes'));
 app.use(errorHandler);
 
 app.use((req, res) => {
+  const hint = req.path.startsWith('/api/auth/register')
+    ? ' This endpoint only accepts POST requests, not GET.'
+    : '';
   res.status(404).json({
     success: false,
-    message: 'Route not found'
+    message: `Route not found.${hint}`,
+    method: req.method,
+    path: req.originalUrl
   });
 });
 

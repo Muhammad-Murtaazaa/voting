@@ -1022,9 +1022,15 @@ exports.register = async (req, res) => {
           emailMethod: emailResult.method
         });
 
-        return res.status(500).json({
-          success: false,
-          message: 'Registration successful but OTP email could not be sent. Please check backend email configuration and try again.',
+        return res.status(201).json({
+          success: true,
+          emailSent: false,
+          message: 'Account created, but the verification email could not be sent. Use Resend OTP on the next screen or configure email on the server.',
+          email: user.email,
+          userId: user._id,
+          district: user.district,
+          districtCode: user.districtCode,
+          halqaId: user.halqaId,
           emailMethod: emailResult.method
         });
       }
@@ -1040,6 +1046,7 @@ exports.register = async (req, res) => {
 
       res.status(200).json({
         success: true,
+        emailSent: true,
         message: 'Registration successful. OTP sent to your email',
         email: user.email,
         userId: user._id,
@@ -1056,18 +1063,39 @@ exports.register = async (req, res) => {
         emailFailed: true
       });
 
-      res.status(500).json({
-        success: false,
-        message: 'Registration successful but email could not be sent. Please contact support.'
+      res.status(201).json({
+        success: true,
+        emailSent: false,
+        message: 'Account created, but the verification email could not be sent. Use Resend OTP on the next screen.',
+        email: user.email,
+        userId: user._id,
+        district: user.district,
+        districtCode: user.districtCode,
+        halqaId: user.halqaId
       });
     }
 
   } catch (error) {
     console.error('Registration error:', error);
+
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyValue || {})[0] || 'field';
+      return res.status(409).json({
+        success: false,
+        message: `${field} already exists`
+      });
+    }
+
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        success: false,
+        message: Object.values(error.errors).map((val) => val.message).join(', ')
+      });
+    }
+
     res.status(500).json({
       success: false,
-      message: 'Server Error',
-      error: error.message
+      message: error.message || 'Server Error'
     });
   }
 };

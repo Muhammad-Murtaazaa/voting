@@ -194,7 +194,11 @@ const RegisterPage = () => {
         userId: data.userId
       }));
 
-      alert(`Registration successful. OTP has been sent to ${formData.email}.`);
+      if (data.emailSent === false) {
+        alert(data.message || 'Account created, but OTP email could not be sent. Use Resend OTP on the next page.');
+      } else {
+        alert(`Registration successful. OTP has been sent to ${formData.email}.`);
+      }
       navigate('/otp-verification');
     } catch (error) {
       console.error('Registration error:', error);

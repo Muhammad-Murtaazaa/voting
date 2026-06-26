@@ -40,6 +40,25 @@ const { otpLimiter, authLimiter } = require('../middleware/rateLimiter');
 
 const router = express.Router();
 
+// Browsers open URLs with GET — return a clear message instead of a generic 404.
+router.get('/register', (req, res) => {
+  res.status(405).json({
+    success: false,
+    message: 'Use POST /api/auth/register with JSON: { name, cnic, email, phone, password }',
+    example: {
+      method: 'POST',
+      url: '/api/auth/register',
+      body: {
+        name: 'Ali Khan',
+        cnic: '3520212345678',
+        email: 'user@example.com',
+        phone: '03001234567',
+        password: 'yourPassword1!'
+      }
+    }
+  });
+});
+
 router.post('/register', authLimiter, register);
 router.post('/verify-otp', otpLimiter, verifyOTP);
 router.post('/resend-otp', otpLimiter, resendOTP);
