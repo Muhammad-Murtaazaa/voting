@@ -6,6 +6,9 @@ import joblib
 from datetime import datetime
 import json
 import pandas as pd
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
@@ -343,8 +346,9 @@ def get_analytics():
         }), 500
 
 if __name__ == '__main__':
-    port = int(os.environ.get('AI_PORT', 5001))
-    debug = os.environ.get('FLASK_ENV') == 'development'
+    # Local dev: AI_PORT or PORT; Render sets PORT when using gunicorn via start command.
+    port = int(os.environ.get('PORT', os.environ.get('AI_PORT', 5001)))
+    debug = os.environ.get('FLASK_ENV', 'development') == 'development'
     
     print(f"""
 ╔═══════════════════════════════════════════════════════╗

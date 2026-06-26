@@ -1,5 +1,14 @@
 # Dependencies
 node_modules/
+**/node_modules/
+
+# Python (AI fraud detection service)
+**/__pycache__/
+**/*.py[cod]
+backend/ai_fraud_detection/venv/
+backend/ai_fraud_detection/venv*/
+backend/ai_fraud_detection/.venv/
+backend/ai_fraud_detection/.env
 
 # Production build
 build/
