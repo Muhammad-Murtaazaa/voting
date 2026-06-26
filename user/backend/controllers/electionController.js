@@ -7,7 +7,8 @@ const {
   DISTRICTS,
   buildDistrictResponse,
   detectDistrictFromCnic,
-  getDistrictByCode
+  getDistrictByCode,
+  getAllProvinces,
 } = require('../utils/halqaData');
 
 const isVoter = (req) => req.user?.role === 'voter';
@@ -34,12 +35,23 @@ exports.getDistricts = async (req, res) => {
   const { getAllDistrictOptions } = require('../utils/halqaData');
   res.status(200).json({
     success: true,
-    districts: getAllDistrictOptions()
+    districts: getAllDistrictOptions(),
+    provinces: getAllProvinces(),
+  });
+};
+
+exports.getProvinces = async (req, res) => {
+  res.status(200).json({
+    success: true,
+    provinces: getAllProvinces(),
   });
 };
 
 exports.getHalqasByDistrict = async (req, res) => {
-  const district = getDistrictByCode(req.params.districtCode);
+  const district =
+    getDistrictByCode(req.params.districtCode) ||
+    detectDistrictFromCnic(req.params.districtCode);
+
   if (!district) {
     return res.status(404).json({ success: false, message: 'District not found for this CNIC prefix' });
   }
@@ -47,20 +59,25 @@ exports.getHalqasByDistrict = async (req, res) => {
   return res.status(200).json({
     success: true,
     district: buildDistrictResponse(district),
-    halqas: district.halqas
+    halqas: district.halqas || [],
   });
 };
 
 exports.detectCnicDistrict = async (req, res) => {
-  const district = detectDistrictFromCnic(req.params.cnicPrefix || req.query.cnic);
+  const raw = req.params.cnicPrefix || req.query.cnic || '';
+  const district = detectDistrictFromCnic(raw);
+
   if (!district) {
-    return res.status(404).json({ success: false, message: 'District not found for this CNIC prefix' });
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid CNIC prefix. Pakistani CNIC must start with digits 1–8 (province) or 90xxx (overseas NICOP).',
+    });
   }
 
   return res.status(200).json({
     success: true,
     district: buildDistrictResponse(district),
-    halqas: district.halqas
+    halqas: district.halqas || [],
   });
 };
 

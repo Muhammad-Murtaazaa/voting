@@ -211,15 +211,16 @@ const RegisterPage = () => {
   const getDetectionLabel = (district) => {
     if (!district) return '';
     if (district.isOverseas || district.detectionLevel === 'overseas') {
-      return 'Overseas Pakistani (NICOP)';
+      return 'Overseas Pakistani (NICOP) — verified from CNIC prefix';
     }
     const labels = {
-      exact: 'Exact district match',
-      district: 'District detected from CNIC',
-      division: 'Division detected from CNIC',
-      province: 'Province detected from CNIC',
+      exact: 'Exact district match (with constituency data)',
+      district: 'District identified from CNIC area code',
+      division: 'Division identified from CNIC area code',
+      province: 'Province identified from CNIC area code',
     };
-    return labels[district.detectionLevel] || 'Detected from CNIC';
+    const base = labels[district.detectionLevel] || 'Detected from CNIC';
+    return district.division ? `${base} · ${district.division} Division` : base;
   };
 
   const registrationSteps = [
