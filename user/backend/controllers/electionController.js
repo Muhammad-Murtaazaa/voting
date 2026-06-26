@@ -31,9 +31,10 @@ const ensureVoterCanAccessHalqa = (req, record) => {
 };
 
 exports.getDistricts = async (req, res) => {
+  const { getAllDistrictOptions } = require('../utils/halqaData');
   res.status(200).json({
     success: true,
-    districts: DISTRICTS.map(buildDistrictResponse)
+    districts: getAllDistrictOptions()
   });
 };
 

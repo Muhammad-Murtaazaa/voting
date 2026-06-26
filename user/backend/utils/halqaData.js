@@ -1,3 +1,12 @@
+const {
+  DIVISIONS,
+  PREFIX3_DISTRICTS,
+  OVERSEAS_PREFIXES,
+  isOverseasPrefix,
+  getProvinceFromDigit,
+} = require('./cnicRegionData');
+
+/** Exact 5-digit entries with halqa (NA constituency) mappings */
 const DISTRICTS = [
   {
     code: '35202',
@@ -118,7 +127,35 @@ const DISTRICTS = [
     name: 'Quetta',
     province: 'Balochistan',
     halqas: ['NA-263', 'NA-264', 'NA-265']
-  }
+  },
+  {
+    code: '90001',
+    name: 'Overseas Pakistani (NICOP)',
+    province: 'Overseas',
+    halqas: [],
+    isOverseas: true,
+  },
+  {
+    code: '90101',
+    name: 'Overseas Pakistani — Middle East',
+    province: 'Overseas',
+    halqas: [],
+    isOverseas: true,
+  },
+  {
+    code: '90201',
+    name: 'Overseas Pakistani — Europe',
+    province: 'Overseas',
+    halqas: [],
+    isOverseas: true,
+  },
+  {
+    code: '90301',
+    name: 'Overseas Pakistani — North America',
+    province: 'Overseas',
+    halqas: [],
+    isOverseas: true,
+  },
 ];
 
 const normalizeCnic = (value) => String(value || '').replace(/\D/g, '');
@@ -127,10 +164,96 @@ const normalizeHalqaId = (value) => String(value || '').trim().toUpperCase();
 
 const getDistrictByCode = (code) => DISTRICTS.find((district) => district.code === String(code || '').trim());
 
+const resolveAmbiguousPrefix = (prefix5) => {
+  // 61101 = Multan, 61102 = Hyderabad (same first 3 digits)
+  if (prefix5.startsWith('6110')) {
+    const fourth = prefix5[3];
+    if (fourth === '2') {
+      return { name: 'Hyderabad', province: 'Sindh' };
+    }
+    return { name: 'Multan', province: 'Punjab' };
+  }
+  return null;
+};
+
 const detectDistrictFromCnic = (cnic) => {
   const normalized = normalizeCnic(cnic);
   if (normalized.length < 5) return null;
-  return getDistrictByCode(normalized.slice(0, 5)) || null;
+
+  const prefix5 = normalized.slice(0, 5);
+  const prefix3 = Number(prefix5.slice(0, 3));
+  const prefix2 = Number(prefix5.slice(0, 2));
+
+  const exact = getDistrictByCode(prefix5);
+  if (exact) {
+    return {
+      ...exact,
+      code: prefix5,
+      detectionLevel: 'exact',
+      isOverseas: Boolean(exact.isOverseas),
+    };
+  }
+
+  if (isOverseasPrefix(prefix5)) {
+    return {
+      code: prefix5,
+      name: OVERSEAS_PREFIXES[prefix5] || 'Overseas Pakistani (NICOP)',
+      province: 'Overseas',
+      halqas: [],
+      detectionLevel: 'overseas',
+      isOverseas: true,
+    };
+  }
+
+  const ambiguous = resolveAmbiguousPrefix(prefix5);
+  if (ambiguous) {
+    return {
+      code: prefix5,
+      name: ambiguous.name,
+      province: ambiguous.province,
+      halqas: [],
+      detectionLevel: 'district',
+      isOverseas: false,
+    };
+  }
+
+  if (PREFIX3_DISTRICTS[prefix3]) {
+    const match = PREFIX3_DISTRICTS[prefix3];
+    return {
+      code: prefix5,
+      name: match.name,
+      province: match.province,
+      halqas: [],
+      detectionLevel: 'district',
+      isOverseas: false,
+    };
+  }
+
+  if (DIVISIONS[prefix2]) {
+    const match = DIVISIONS[prefix2];
+    return {
+      code: prefix5,
+      name: `${match.name} Division`,
+      province: match.province,
+      halqas: [],
+      detectionLevel: 'division',
+      isOverseas: false,
+    };
+  }
+
+  const provinceName = getProvinceFromDigit(prefix5[0]);
+  if (provinceName) {
+    return {
+      code: prefix5,
+      name: provinceName,
+      province: provinceName,
+      halqas: [],
+      detectionLevel: 'province',
+      isOverseas: false,
+    };
+  }
+
+  return null;
 };
 
 const getHalqasForDistrict = (districtCode) => {
@@ -149,8 +272,30 @@ const buildDistrictResponse = (district) => {
     code: district.code,
     name: district.name,
     province: district.province,
-    halqas: district.halqas
+    halqas: district.halqas || [],
+    detectionLevel: district.detectionLevel || 'exact',
+    isOverseas: Boolean(district.isOverseas),
   };
+};
+
+/** All unique districts for admin dropdowns (exact + regional) */
+const getAllDistrictOptions = () => {
+  const seen = new Set();
+  const options = [];
+
+  const add = (entry) => {
+    const key = `${entry.name}|${entry.province}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    options.push(buildDistrictResponse(entry));
+  };
+
+  DISTRICTS.forEach(add);
+  Object.entries(PREFIX3_DISTRICTS).forEach(([, value]) => {
+    add({ code: '', name: value.name, province: value.province, halqas: [] });
+  });
+
+  return options;
 };
 
 module.exports = {
@@ -161,5 +306,6 @@ module.exports = {
   detectDistrictFromCnic,
   getHalqasForDistrict,
   isValidHalqaForDistrict,
-  buildDistrictResponse
+  buildDistrictResponse,
+  getAllDistrictOptions,
 };

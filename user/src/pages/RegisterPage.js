@@ -208,6 +208,20 @@ const RegisterPage = () => {
     }
   };
 
+  const getDetectionLabel = (district) => {
+    if (!district) return '';
+    if (district.isOverseas || district.detectionLevel === 'overseas') {
+      return 'Overseas Pakistani (NICOP)';
+    }
+    const labels = {
+      exact: 'Exact district match',
+      district: 'District detected from CNIC',
+      division: 'Division detected from CNIC',
+      province: 'Province detected from CNIC',
+    };
+    return labels[district.detectionLevel] || 'Detected from CNIC';
+  };
+
   const registrationSteps = [
     { text: 'Enter CNIC to detect your district automatically', icon: null },
     { text: 'Register with email, phone, and password', icon: null },
@@ -322,8 +336,15 @@ const RegisterPage = () => {
             <div style={{ marginBottom: '1rem' }}>
               <label style={{ display: 'block', marginBottom: 8, color: '#334155', fontWeight: 700 }}>Detected District</label>
               <div style={{ padding: '13px 14px', borderRadius: 14, border: '1px solid #cbd5e1', background: '#f8fafc', color: detectedDistrict ? '#0f172a' : '#64748b' }}>
-                {detectedDistrict ? `${detectedDistrict.name} (${detectedDistrict.province})` : 'Enter first 5 CNIC digits to detect district'}
+                {detectedDistrict
+                  ? `${detectedDistrict.name} (${detectedDistrict.province})`
+                  : 'Enter first 5 CNIC digits to detect district'}
               </div>
+              {detectedDistrict && (
+                <div style={{ marginTop: 6, color: '#0f766e', fontSize: 13, fontWeight: 600 }}>
+                  {getDetectionLabel(detectedDistrict)}
+                </div>
+              )}
               <div style={{ marginTop: 6, color: '#475569', fontSize: 13 }}>
                 Your halqa will be assigned later by the administrator. You do not choose it during registration.
               </div>
